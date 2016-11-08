@@ -1,0 +1,23 @@
+{% block content %}
+  <h3> Complete below</h3>
+    <p>This is the firs admin screen written for this app. This page is now just a proof of concept.<p>
+    <form action="" method="post" name="api">
+      {{ form.csrf_token }}
+      <p> Please enter the MAC address of your device:<br>
+      {{ form.macaddr(size=40) }}<br>
+      {% for error in form.macaddr.errors %}
+        <span style="color: red;">[{{ error }}]</span>
+      {% endfor %}<br>
+      <p> The firmware file name for this device: <br>
+      {{ form.fwname(size=40) }} <br>
+      {% for error in form.fwname.errors %}
+        <span style="color: red;">[{{ error }}]</span>
+      {% endfor %}<br>
+      <p> Some comment: <br>
+      {{ form.comment(size=40) }} <br>
+      {% for error in form.comment.errors %}
+        <span style="color: red;">[{{ error }}]</span>
+      {% endfor %}<br>
+      <p><input type ="submit" value="Add" class="btn"></p>
+    </form>
+{% endblock %}
