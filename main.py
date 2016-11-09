@@ -19,7 +19,7 @@ def testing():
 
 @app.route('/firmware', methods=['GET', 'POST'])
 def fwstuff():
-    if request.headers['User-Agent'] != "ESP8266-http-Update":
+    if request.headers.get('User-Agent') != "ESP8266-http-Update":
       form = FirePut()
       if form.validate_on_submit():
         putData = {'FWname' : form.fwname.data, 'Comment' : form.comment.data}

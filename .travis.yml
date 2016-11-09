@@ -1,17 +1,15 @@
 language: python
 python:
-  - "2.7"
-  - "3.4"
-  - "3.5"
-  - "3.5-dev" # 3.5 development branch
-  - "3.6-dev" # 3.6 development branch
-  - "nightly" # currently points to 3.7-dev
+- "2.7"
+- "3.5"
+- "3.5-dev" # 3.5 development branch
+- "3.6-dev" # 3.6 development branch
 before_install:
-  - openssl aes-256-cbc -K $encrypted_e6b2e2d8422a_key -iv $encrypted_e6b2e2d8422a_iv -in ota-rocks-sa.json.enc -out ota-rocks-sa.json -d
+- openssl aes-256-cbc -K $encrypted_e6b2e2d8422a_key -iv $encrypted_e6b2e2d8422a_iv -in ota-rocks-sa.json.enc -out ota-rocks-sa.json -d
 install:
-  - "pip install -r requirements.txt -t lib"
+- pip install -r requirements.txt -t lib/
 script:
-  - pytest
+- python test_initial.py
 deploy:
   provider: gae
   keyfile: "ota-rocks-sa.json"
