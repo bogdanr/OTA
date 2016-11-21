@@ -1,17 +1,38 @@
 language: python
 python:
 - "2.7"
+# Cache our Gcloud SDK between commands
+cache:
+  directories:
+  - "$HOME/google-cloud-sdk/"
+env:
+# Make sure gcloud command is on our PATH and the App Engine SDK is in the Python path
+- GAE_PYTHONPATH=${HOME}/.cache/google_appengine PATH=$PATH:${HOME}/google-cloud-sdk/bin PYTHONPATH=${PYTHONPATH}:${GAE_PYTHONPATH} CLOUDSDK_CORE_DISABLE_PROMPTS=1
 before_install:
-- openssl aes-256-cbc -K $encrypted_e6b2e2d8422a_key -iv $encrypted_e6b2e2d8422a_iv -in ota-rocks-sa.json.enc -out ota-rocks-sa.json -d
-install:
 - pip install -U pip
-- pip install -r requirements.txt -t lib/
+# Install Google App Engine Python SDK
+- if [ ! -d "${GAE_PYTHONPATH}" ]; then
+    python scripts/fetch_gae_sdk.py $(dirname "${GAE_PYTHONPATH}");
+  fi
+# [START auth]
+# Decrypt the credentials we added to the repo using the key we added with the Travis command line tool
+- openssl aes-256-cbc -K $encrypted_e6b2e2d8422a_key -iv $encrypted_e6b2e2d8422a_iv -in ota-rocks-sa.json.enc -out ota-rocks-sa.json -d
+# If the SDK is not already cached, download it and unpack it
+- rm -rf ~/google-cloud-sdk
+- if [ ! -d ${HOME}/google-cloud-sdk ]; then
+    curl https://sdk.cloud.google.com | bash;
+  fi
+- mkdir -p lib
+# Here we use the decrypted service account credentials to authenticate the command line tool
+- gcloud auth activate-service-account --key-file ota-rocks-sa.json
+# [END auth]
+install:
+- gcloud config set project ota-rocks
+- gcloud -q components update gae-python
 - pip install -r requirements.txt
+- pip install -r requirements.txt -t lib/
 script:
-- python test_initial.py
-deploy:
-  provider: gae
-  keyfile: "ota-rocks-sa.json"
-  project: "ota-rocks"
-  on: master
-
+- python scripts/test_initial.py
+# [START deploy]
+# Deploy the app
+- gcloud -q app deploy app.yaml
