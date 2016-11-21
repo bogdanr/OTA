@@ -1,13 +1,19 @@
 
 # Import the Flask Framework, firebase and the local forms script which has WTforms
-from firebase import firebase
+import pyrebase
 from flask import Flask, request, render_template
 from forms import FirePut
 from streamfw import *
 
 app = Flask(__name__)
 app.secret_key = 's3cr3t'
-firebase = firebase.FirebaseApplication('https://onecom-1.firebaseio.com', None)
+
+config = {
+  "apiKey": "apiKey",
+  "authDomain": "projectId.firebaseapp.com",
+  "databaseURL": "https://ota-rocks.firebaseio.com",
+  "storageBucket": "ota-rocks.appspot.com"
+}
 
 @app.route('/')
 def index():
@@ -15,26 +21,27 @@ def index():
 
 @app.route('/testing')
 def testing():
-    return "<h1>This is another testing page</h1>"
+    return "This is a testing page"
 
 @app.route('/firmware', methods=['GET', 'POST'])
 def fwstuff():
-    if request.headers.get('User-Agent') != "ESP8266-http-Update":
+    firebase = pyrebase.initialize_app(config)
+    db = firebase.database()
+    if request.headers.get('User-Agent') != 'ESP8266-http-Update':
       form = FirePut()
       if form.validate_on_submit():
         putData = {'FWname' : form.fwname.data, 'Comment' : form.comment.data}
-        firebase.put('/devices', form.macaddr.data, putData)
+        db.child('devices').child(form.macaddr.data).set(putData)
         return render_template('api-put-result.html', form=form, putData=putData)
       return render_template('add-device.html', form=form)
     else:
       import time
       patchData = {'FW-current' : request.headers.get('x-ESP8266-version'), 'Comment' : 'added automagically', 'Last seen' : time.strftime("%c")}
-#     We are using patch instead of put because it doesn't delete data that we are not sending. Still, we need to make sure we don't send a key with a Null value.
-      resp = firebase.patch('/devices/' + request.headers['x-ESP8266-STA-MAC'], patchData)
-      FWupdate = firebase.get('/devices/' + request.headers['x-ESP8266-STA-MAC'], 'FW-update')
-      if FWupdate and resp.get('FW-current', 'none') != FWupdate:
+      resp = db.child('devices').child(request.headers['x-ESP8266-STA-MAC']).update(patchData)
+      FWupdate = db.child('devices').child(request.headers['x-ESP8266-STA-MAC']).child('FW-update').get()
+      if FWupdate.val() and resp.get('FW-current', 'none') != FWupdate.val():
         return get_stream_fw(FWupdate)
-      return request.headers['x-ESP8266-STA-MAC'] + "\n" 
+      return Response(status=304)
 
 
 @app.errorhandler(404)
